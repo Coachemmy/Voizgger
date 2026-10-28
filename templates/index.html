@@ -3,73 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoxLedger | Voice-to-Ledger</title>
+    <title>Voizgger | Voice to Ledger</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">VoxLedger</div>
-        <div class="tagline">Voice-to-Ledger for the Informal Economy</div>
-    </nav>
-
-    <div class="container">
-        <div class="card">
-            <h2>Record Transaction</h2>
-            <p class="subtitle">Upload a voice note in Pidgin or English.</p>
-            
-            <label for="audioFile" class="file-label">
-                <div class="upload-icon">🎤</div>
-                <span id="fileName">Choose an audio file...</span>
-            </label>
-            <input type="file" id="audioFile" accept="audio/*" capture="microphone" onchange="updateFileName()">
-            
-            <button id="submitBtn" onclick="processAudio()">Process Transaction</button>
-            <button id="demoBtn" class="secondary-btn" onclick="loadDemoData()">Load Demo Data (For Video)</button>
-
-            <div id="errorBox" class="error hidden"></div>
-        </div>
-
-        <div class="card ledger-card">
-            <h2>Digital Ledger</h2>
-            <div id="ledger" class="hidden">
-                <div class="transcript-box">
-                    <strong>Transcript:</strong> <span id="transcriptText"></span>
+    <canvas id="bgCanvas" aria-hidden="true"></canvas>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">V</div>
+                <div class="brand-text">
+                    <h1>Voizgger</h1>
+                    <span>Voice-to-Ledger</span>
                 </div>
-                
-                <table class="ledger-table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Qty</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemsTableBody">
-                    </tbody>
-                </table>
-
-                <div class="totals">
-                    <div class="total-row">
-                        <span>Amount Paid:</span>
-                        <span id="amountPaid">₦0</span>
-                    </div>
-                    <div class="total-row debt">
-                        <span>Amount Owed:</span>
-                        <span id="amountOwed">₦0</span>
-                    </div>
-                </div>
-
-                 <div id="agenticAction" class="agentic-box hidden">
-                    <h3>Agentic Action: Follow-up SMS</h3>
-                    <p id="smsText"></p>
-                    <button class="copy-btn" onclick="copySMS()">Copy SMS</button>
-                </div>
-
-
             </div>
-            <div id="emptyState" class="empty-state">
-                <p>No transactions yet. Upload a voice note to begin.</p>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-view="dashboard" onclick="switchView('dashboard', event)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item" data-view="invoices" onclick="switchView('invoices', event)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    Invoices
+                </a>
+                <a href="#" class="nav-item" data-view="customers" onclick="switchView('customers', event)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    Customers
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                Powered by Meta AI · Built with Muse & SAM
             </div>
-        </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+            <!-- Dashboard view -->
+            <div id="view-dashboard" class="view">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h2>Record New Transaction</h2>
+                    <p class="muted">Upload a voice note and let AI build the ledger entry.</p>
+                </div>
+                <button id="themeToggle" class="btn-icon" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+            </header>
+
+            <div class="workspace">
+                <!-- Input -->
+                <section class="card input-card">
+                    <div class="upload-area">
+                        <input type="file" id="audioFile" accept="audio/*" onchange="updateFileName()">
+                        <div class="upload-icon">🎤</div>
+                        <p class="upload-title">Drop a voice note, or click to browse</p>
+                        <p class="upload-hint">m4a, mp3, wav · English, Pidgin, Yoruba…</p>
+                        <span id="fileName" class="file-pill">No file selected</span>
+                    </div>
+
+                    <label class="switch-row">
+                        <input type="checkbox" id="deepAudit">
+                        <span class="switch-track"></span>
+                        <span class="switch-text">
+                            Deep Audit
+                            <small>Slower, catches tricky debts and discounts</small>
+                        </span>
+                    </label>
+
+                    <button id="submitBtn" class="btn-primary" onclick="processAudio()">Process Transaction</button>
+                    <button id="demoBtn" class="btn-ghost btn-block" onclick="loadDemoData()">Load Demo Data</button>
+                    <div id="errorBox" class="alert hidden"></div>
+                </section>
+
+                <!-- Output -->
+                <section class="card output-card">
+                    <div id="emptyState" class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <h3>No transaction yet</h3>
+                        <p>Process an audio file to see the AI extraction.</p>
+                    </div>
+
+                    <div id="ledger" class="hidden">
+                        <div class="ledger-head">
+                            <div>
+                                <h3>Transaction Details</h3>
+                                <p id="summaryText" class="summary"></p>
+                            </div>
+                            <span id="confidenceBadge" class="badge">Verified</span>
+                        </div>
+
+                        <div class="block">
+                            <div class="block-head">
+                                <span class="block-title">AI Transcript</span>
+                                <div id="langChips" class="lang-chips">
+                                    <button class="chip active" data-lang="English" onclick="switchLanguage('English')">English</button>
+                                    <button class="chip" data-lang="Nigerian Pidgin" onclick="switchLanguage('Nigerian Pidgin')">Pidgin</button>
+                                    <button class="chip" data-lang="Yoruba" onclick="switchLanguage('Yoruba')">Yorùbá</button>
+                                    <button class="chip" data-lang="Hausa" onclick="switchLanguage('Hausa')">Hausa</button>
+                                    <button class="chip" data-lang="Igbo" onclick="switchLanguage('Igbo')">Igbo</button>
+                                </div>
+                            </div>
+                            <p id="transcriptText" class="transcript-text"></p>
+                            <p id="originalTranscript" class="transcript-original hidden"></p>
+                        </div>
+
+                        <table class="ledger-table">
+                            <thead>
+                                <tr><th>Item</th><th class="num">Qty</th></tr>
+                            </thead>
+                            <tbody id="itemsTableBody"></tbody>
+                        </table>
+
+                        <div class="totals-grid">
+                            <div class="total paid">
+                                <span>Amount Paid</span>
+                                <h4 id="amountPaid">₦0</h4>
+                            </div>
+                            <div class="total owed">
+                                <span>Amount Owed</span>
+                                <h4 id="amountOwed">₦0</h4>
+                            </div>
+                        </div>
+
+                        <div class="audit-box">
+                            <div class="block-head">
+                                <span class="block-title">Visual Verification</span>
+                                <span class="pill-soft">muse-wonder</span>
+                            </div>
+                            <p class="audit-hint">Snap your shelf so the AI can cross-check the quantities you recorded.</p>
+
+                            <div class="audit-actions">
+                                <label class="btn-ghost audit-pick">
+                                    <input type="file" id="stockPhoto" accept="image/*" onchange="onPhotoPicked()">
+                                    Choose photo
+                                </label>
+                                <button id="auditBtn" class="btn-ghost" onclick="auditStock()">Audit stock</button>
+                            </div>
+
+                            <img id="photoPreview" class="photo-preview hidden" alt="Shelf photo preview">
+                            <div id="auditResult" class="audit-result hidden"></div>
+                        </div>
+
+                        <div id="agenticAction" class="agentic-box hidden">
+                            <div class="agentic-head">
+                                <span class="spark">✨</span>
+                                <h4>Agentic Follow-up</h4>
+                            </div>
+                            <p id="smsText" class="sms-text"></p>
+                            <div class="agentic-actions">
+                                <button class="btn-whatsapp" onclick="sendWhatsApp()">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                    Send via WhatsApp
+                                </button>
+                                <button class="btn-ghost" onclick="copySMS()">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            </div>
+
+            <!-- Invoices view -->
+            <div id="view-invoices" class="view hidden">
+                <header class="topbar">
+                    <div class="topbar-title">
+                        <h2>Invoices</h2>
+                        <p class="muted">Every processed voice note becomes a printable invoice.</p>
+                    </div>
+                    <button class="btn-ghost" onclick="clearInvoices()">Clear history</button>
+                </header>
+
+                <div class="invoice-layout">
+                    <section class="card invoice-list-card">
+                        <h3 class="side-title">Recent invoices</h3>
+                        <div id="invoiceList" class="invoice-list"></div>
+                        <p id="invoiceEmpty" class="muted small">No invoices yet — process a voice note on the Dashboard.</p>
+                    </section>
+
+                    <section id="invoicePaper" class="card invoice-paper hidden">
+                        <div class="invoice-paper-head">
+                            <div>
+                                <div class="invoice-brand">Voizgger</div>
+                                <p class="muted small">Voice-generated invoice</p>
+                            </div>
+                            <div class="invoice-meta">
+                                <span id="invNumber" class="inv-number"></span>
+                                <span id="invDate" class="muted small"></span>
+                            </div>
+                        </div>
+
+                        <p id="invSummary" class="invoice-summary"></p>
+
+                        <table class="ledger-table invoice-items">
+                            <thead>
+                                <tr><th>Item</th><th class="num">Qty</th></tr>
+                            </thead>
+                            <tbody id="invItemsBody"></tbody>
+                        </table>
+
+                        <div class="invoice-totals">
+                            <div><span>Total</span><strong id="invTotal"></strong></div>
+                            <div><span>Paid</span><strong id="invPaid" class="ok"></strong></div>
+                            <div><span>Balance due</span><strong id="invOwed" class="due"></strong></div>
+                        </div>
+
+                        <p class="invoice-foot">Generated by Meta Muse Spark from a voice note.</p>
+
+                        <div class="invoice-actions no-print">
+                            <button class="btn-primary btn-slim" onclick="window.print()">Print / Save PDF</button>
+                            <button class="btn-ghost" onclick="downloadInvoice()">Download</button>
+                        </div>
+                    </section>
+
+                    <section id="invoicePlaceholder" class="card invoice-paper placeholder">
+                        <div class="empty-state">
+                            <div class="empty-icon">🧾</div>
+                            <h3>Select an invoice</h3>
+                            <p>Pick one from the list to preview it here.</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Customers view (coming soon) -->
+            <div id="view-customers" class="view hidden">
+                <div class="soon-wrap">
+                    <div class="soon-card">
+                        <div class="soon-badge">Coming in V2</div>
+                        <div class="soon-icon">
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        </div>
+                        <h2>Customer CRM</h2>
+                        <p class="soon-sub">Know your market, one voice note at a time.</p>
+                        <ul class="soon-list">
+                            <li><span>📒</span> Auto-built customer profiles from every voice transaction</li>
+                            <li><span>💳</span> Per-customer debt tracking and payment history</li>
+                            <li><span>📲</span> One-tap WhatsApp reminders in their language</li>
+                            <li><span>⭐</span> Trust scores for your most reliable customers</li>
+                        </ul>
+                        <p class="soon-note">During the hackathon we focused 100% on the core AI pipeline ASR, Muse Spark reasoning, and the visual stock audit. The architecture is designed to scale into full invoicing and CRM in V2.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
     <script src="/static/js/app.js"></script>
 </body>
