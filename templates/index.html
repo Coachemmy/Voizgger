@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxLedger | Voice-to-Ledger</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">VoxLedger</div>
+        <div class="tagline">Voice-to-Ledger for the Informal Economy</div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h2>Record Transaction</h2>
+            <p class="subtitle">Upload a voice note in Pidgin or English.</p>
+            
+            <label for="audioFile" class="file-label">
+                <div class="upload-icon">🎤</div>
+                <span id="fileName">Choose an audio file...</span>
+            </label>
+            <input type="file" id="audioFile" accept="audio/*" capture="microphone" onchange="updateFileName()">
+            
+            <button id="submitBtn" onclick="processAudio()">Process Transaction</button>
+            <button id="demoBtn" class="secondary-btn" onclick="loadDemoData()">Load Demo Data (For Video)</button>
+
+            <div id="errorBox" class="error hidden"></div>
+        </div>
+
+        <div class="card ledger-card">
+            <h2>Digital Ledger</h2>
+            <div id="ledger" class="hidden">
+                <div class="transcript-box">
+                    <strong>Transcript:</strong> <span id="transcriptText"></span>
+                </div>
+                
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTableBody">
+                    </tbody>
+                </table>
+
+                <div class="totals">
+                    <div class="total-row">
+                        <span>Amount Paid:</span>
+                        <span id="amountPaid">₦0</span>
+                    </div>
+                    <div class="total-row debt">
+                        <span>Amount Owed:</span>
+                        <span id="amountOwed">₦0</span>
+                    </div>
+                </div>
+
+                 <div id="agenticAction" class="agentic-box hidden">
+                    <h3>Agentic Action: Follow-up SMS</h3>
+                    <p id="smsText"></p>
+                    <button class="copy-btn" onclick="copySMS()">Copy SMS</button>
+                </div>
+
+
+            </div>
+            <div id="emptyState" class="empty-state">
+                <p>No transactions yet. Upload a voice note to begin.</p>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
