@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import re
 import tempfile
 import subprocess
 import imageio_ffmpeg
@@ -257,7 +258,10 @@ def verify_inventory(image_bytes: bytes, mime_type: str, items: list, quantities
         "You are a stock verification assistant for a market trader. "
         "Look at the photo of their shelf. For each item below, count how many units are visible: "
         f"{json.dumps(items, ensure_ascii=False)}. "
-        'Reply ONLY with JSON: {"detected":[{"item":"<name exactly as given>","count":<int>}],'
+        "Item names may include a packaging spec in parentheses like 'Rice (50kg)' — match by the "
+        "product itself: any bag/sack of rice counts as 'Rice (50kg)', regardless of the weight or "
+        "brand printed on the packaging. "
+        'Reply ONLY with JSON: {"detected":[{"item":"<name exactly as given in my list>","count":<int>}],'
         '"confidence":<0-100>}. If an item is not visible at all, use count 0.'
     )
 
@@ -312,11 +316,23 @@ def verify_inventory(image_bytes: bytes, mime_type: str, items: list, quantities
     for row in detected:
         name = str(row.get("item", "")).strip().lower()
         if name:
-            counts[name] = int(row.get("count", 0) or 0)
+            counts[name] = counts.get(name, 0) + int(row.get("count", 0) or 0)
+
+    def _base(name: str) -> str:
+        # "Rice (50kg)" -> "rice" — match on the product, not the packaging spec
+        return re.sub(r"\s*\(.*?\)", "", name).strip().lower()
+
+    def detected_count(item: str) -> int:
+        base = _base(item)
+        total = counts.get(item.lower(), 0)
+        for name, n in counts.items():
+            if name != item.lower() and base and (base in _base(name) or _base(name) in base):
+                total += n
+        return total
 
     short = []
     for item, qty in spoken.items():
-        if counts.get(item.lower(), 0) < int(qty or 0):
+        if detected_count(item) < int(qty or 0):
             short.append(item)
 
     shown = ", ".join(f"{row.get('count')} × {row.get('item')}" for row in detected) or "nothing recognisable"

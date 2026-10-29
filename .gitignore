@@ -10,8 +10,13 @@ __pycache__/
 *.pyd
 .Python
 
-# Environment variables
+# Environment variable
 .env
+
+# IDE / editor artifacts
+.trae-html-share-packages/
+.vscode/
+.idea/
 
 # Mac/Windows system files
 .DS_Store

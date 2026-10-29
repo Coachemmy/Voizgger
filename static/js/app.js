@@ -14,6 +14,7 @@ function switchView(name, event) {
     const target = document.getElementById(`view-${name}`);
     if (target) target.classList.remove('hidden');
     if (name === 'invoices') renderInvoiceList();
+    history.replaceState(null, '', `#${name}`);
 }
 
 (function initParticles() {
@@ -89,11 +90,103 @@ if (localStorage.getItem('theme') === 'dark') {
 }
 syncThemeIcon();
 
+// Restore the tab the user was on before a refresh
+const initialView = (location.hash || '').replace('#', '');
+if (['dashboard', 'invoices', 'customers'].includes(initialView)) {
+    switchView(initialView);
+}
+
+// Splash screen: hold for 4s, then fade out
+setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if (splash) splash.classList.add('hide');
+}, 4000);
+
 /* ---------------- Helpers ---------------- */
 function updateFileName() {
     const input = document.getElementById('audioFile');
     const label = document.getElementById('fileName');
-    label.textContent = input.files.length ? input.files[0].name : "No file selected";
+    const hasFile = input.files.length > 0;
+    label.textContent = hasFile ? input.files[0].name : "No file selected";
+    document.getElementById('fileRemove').classList.toggle('hidden', !hasFile);
+}
+
+function openAudioPicker() {
+    document.getElementById('audioFile').click();
+}
+
+function clearAudioFile(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('audioFile').value = "";
+    updateFileName();
+}
+
+/* ---------------- In-browser recording ---------------- */
+let mediaRecorder = null;
+let recChunks = [];
+let recStartTs = 0;
+let recTimerInt = null;
+
+async function toggleRecording(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        return;
+    }
+
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+        alert("In-browser recording is not supported by this browser — please upload a file instead.");
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size) recChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            stream.getTracks().forEach((t) => t.stop());
+            clearInterval(recTimerInt);
+
+            const type = mediaRecorder.mimeType || 'audio/webm';
+            const ext = type.includes('ogg') ? 'ogg' : type.includes('mp4') ? 'm4a' : 'webm';
+            const file = new File([new Blob(recChunks, { type })], `voice-note.${ext}`, { type });
+
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('audioFile').files = dt.files;
+            updateFileName();
+            setRecUI(false);
+        };
+
+        mediaRecorder.start();
+        recStartTs = Date.now();
+        recTimerInt = setInterval(() => {
+            const s = Math.floor((Date.now() - recStartTs) / 1000);
+            document.getElementById('recTimer').textContent =
+                `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+        }, 500);
+        setRecUI(true);
+    } catch (err) {
+        alert("Microphone unavailable: " + err.message);
+    }
+}
+
+function setRecUI(recording) {
+    const btn = document.getElementById('recordBtn');
+    const text = document.getElementById('recordBtnText');
+    const timer = document.getElementById('recTimer');
+    btn.classList.toggle('recording', recording);
+    text.textContent = recording ? 'Stop recording' : 'Record voice note';
+    timer.classList.toggle('hidden', !recording);
+    if (!recording) timer.textContent = '0:00';
 }
 
 function showError(message) {
@@ -247,6 +340,9 @@ function saveInvoice(data) {
 
 function clearInvoices() {
     localStorage.removeItem('voizgger_invoices');
+    currentInvoice = null;
+    document.getElementById('invoicePaper').classList.add('hidden');
+    document.getElementById('invoicePlaceholder').classList.remove('hidden');
     renderInvoiceList();
 }
 
@@ -409,29 +505,13 @@ async function processAudio() {
     }
 }
 
-/* ---------------- Demo ---------------- */
-function loadDemoData() {
-    displayData({
-        transcript: "I sell three bags of rice and one bag of beans for twenty thousand Naira. The customer paid fifteen thousand, and he still owes five thousand.",
-        summary: "Sold 3 bags of rice and 1 bag of beans for ₦20,000; customer paid ₦15,000 and still owes ₦5,000.",
-        items: ["Rice (50kg)", "Beans (Olotu)"],
-        quantity: [3, 1],
-        amount_paid: 15000,
-        amount_owed: 5000,
-        follow_up_sms: "Hello! Just a quick reminder about the 5,000 Naira balance for the rice and beans. Please let me know when you can complete the payment. Thank you!",
-        confidence: 92,
-        item_confidence: [95, 74],
-        language: "English",
-    });
-}
-
 /* ---------------- Visual verification ---------------- */
 function resetAudit() {
-    const preview = document.getElementById('photoPreview');
-    preview.src = "";
-    preview.classList.add('hidden');
+    document.getElementById('photoWrap').classList.add('hidden');
+    document.getElementById('photoPreview').src = "";
     document.getElementById('auditResult').classList.add('hidden');
     document.getElementById('stockPhoto').value = "";
+    state.photo = null;
     const btn = document.getElementById('auditBtn');
     btn.disabled = false;
     btn.textContent = "Audit stock";
@@ -445,7 +525,12 @@ function onPhotoPicked() {
 
     state.photo = input.files[0];
     preview.src = URL.createObjectURL(state.photo);
-    preview.classList.remove('hidden');
+    document.getElementById('photoWrap').classList.remove('hidden');
+    document.getElementById('auditResult').classList.add('hidden');
+}
+
+function clearPhoto() {
+    resetAudit();
 }
 
 async function auditStock() {

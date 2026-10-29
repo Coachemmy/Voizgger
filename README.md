@@ -25,7 +25,7 @@ Traders already narrate every transaction out loud — to customers, apprentices
 
 | Capability | How it works |
 |---|---|
-| 🎙️ **Voice-to-Ledger** | A voice note in English, **Pidgin, Yorùbá, Hausa, or Igbo** is transcribed by **Meta Muse Voice Transcribe** and parsed into items, quantities, amounts paid, and debts owed |
+| 🎙️ **Voice-to-Ledger** | Speak **directly in the browser** or upload a voice note in English, **Pidgin, Yorùbá, Hausa, or Igbo** — transcribed by **Meta Muse Voice Transcribe** and parsed into items, quantities, amounts paid, and debts owed |
 | 🌍 **Instant Translation** | The transcript, summary, and follow-up SMS switch between the 5 languages in one tap — the ledger stays accurate while communication stays local |
 | 🧠 **Deep Audit Mode** | A `reasoning_effort` toggle escalates Muse Spark to high-effort reasoning for complex debts (conditional payments, discounts, partial settlements) |
 | 🛡️ **Confidence Ledger** | Every extraction carries an AI confidence score; items below 80% are flagged amber — **the AI assists, the trader decides** |
@@ -76,12 +76,23 @@ Voizgger is not a demo wrapper around an LLM. It is a **multimodal, agentic pipe
 
 ## Tech Stack
 
-- **ASR** — Meta Muse Voice Transcribe
+- **ASR** — Meta Muse Voice Transcribe (code-switching across Nigerian languages)
 - **Reasoning & Extraction** — Meta Muse Spark (structured JSON, `reasoning_effort` control)
-- **Visual Audit** — Meta vision model (stock counting & verification)
+- **Visual Audit** — Meta Muse Wonder (stock counting & shelf verification)
 - **Backend** — FastAPI (Python 3.10+), ffmpeg audio pipeline
 - **Frontend** — Vanilla HTML/CSS/JS (no build step, runs anywhere)
 - **Persistence** — `localStorage` for invoices & preferences (hackathon scope; V2 → database + auth)
+
+## 📸 Screenshots
+
+### 1. Live AI Extraction & Agentic Follow-up
+![Voizgger Dashboard](YOUR_IMAGE_URL_HERE)
+
+### 2. Multimodal Visual Audit (Powered by Muse Wonder)
+![Visual Audit](YOUR_IMAGE_URL_HERE)
+
+### 3. Automated Invoicing
+![Invoice Generation](YOUR_IMAGE_URL_HERE)
 
 ## Getting Started
 
@@ -122,9 +133,9 @@ uvicorn app.main:app --reload
 
 Open **http://127.0.0.1:8000**
 
-### Try it in 10 seconds
+### Try it
 
-Click **Load Demo Data** — a complete transaction with translation, confidence flags, and invoice generation, no API key required.
+Record a short voice note describing a sale (e.g. *"I sold 3 bags of rice for 20,000 Naira, the customer paid 15,000"*), upload it, and hit **Process Transaction**. Then snap a shelf photo and run the **Visual Audit**.
 
 ## Project Structure
 

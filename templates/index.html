@@ -4,17 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voizgger | Voice to Ledger</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%232563eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial, sans-serif' font-size='38' font-weight='bold' fill='white' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="splash" class="splash">
+        <div class="splash-inner">
+            <div class="splash-mark">V</div>
+            <h1 class="splash-name">Voizgger</h1>
+            <p class="splash-tag">Voice-to-Ledger · Powered by Meta AI</p>
+            <div class="splash-bar"><span></span></div>
+            <p class="splash-loading">Loading your workspace…</p>
+        </div>
+    </div>
     <canvas id="bgCanvas" aria-hidden="true"></canvas>
     <div class="app-shell">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="brand">
+            <div class="brand" onclick="switchView('dashboard')" title="Go to Dashboard">
                 <div class="brand-mark">V</div>
                 <div class="brand-text">
                     <h1>Voizgger</h1>
@@ -38,6 +48,7 @@
             </nav>
 
             <div class="sidebar-footer">
+                <button id="themeToggle" class="btn-icon" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
                 <span class="status-dot"></span>
                 Powered by Meta AI · Built with Muse & SAM
             </div>
@@ -52,18 +63,25 @@
                     <h2>Record New Transaction</h2>
                     <p class="muted">Upload a voice note and let AI build the ledger entry.</p>
                 </div>
-                <button id="themeToggle" class="btn-icon" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
             </header>
 
             <div class="workspace">
                 <!-- Input -->
                 <section class="card input-card">
                     <div class="upload-area">
-                        <input type="file" id="audioFile" accept="audio/*" onchange="updateFileName()">
-                        <div class="upload-icon">🎤</div>
-                        <p class="upload-title">Drop a voice note, or click to browse</p>
+                        <input type="file" id="audioFile" accept="audio/*" onchange="updateFileName()">                       
+                        <p class="upload-title">Drop a voice note, click to browse or speak below</p>
                         <p class="upload-hint">m4a, mp3, wav · English, Pidgin, Yoruba…</p>
-                        <span id="fileName" class="file-pill">No file selected</span>
+                        <div class="file-pill-row">
+                            <span id="fileName" class="file-pill" onclick="openAudioPicker()" title="Click to browse audio files">No file selected</span>
+                            <button id="fileRemove" class="pill-remove hidden" onclick="clearAudioFile(event)" title="Remove audio">✕</button>
+                        </div>
+                        <div class="rec-row">
+                            <button id="recordBtn" class="record-btn" onclick="toggleRecording(event)">
+                                <span class="rec-dot"></span><span id="recordBtnText">Record voice note</span>
+                            </button>
+                            <span id="recTimer" class="rec-timer hidden">0:00</span>
+                        </div>
                     </div>
 
                     <label class="switch-row">
@@ -76,7 +94,6 @@
                     </label>
 
                     <button id="submitBtn" class="btn-primary" onclick="processAudio()">Process Transaction</button>
-                    <button id="demoBtn" class="btn-ghost btn-block" onclick="loadDemoData()">Load Demo Data</button>
                     <div id="errorBox" class="alert hidden"></div>
                 </section>
 
@@ -145,7 +162,10 @@
                                 <button id="auditBtn" class="btn-ghost" onclick="auditStock()">Audit stock</button>
                             </div>
 
-                            <img id="photoPreview" class="photo-preview hidden" alt="Shelf photo preview">
+                            <div id="photoWrap" class="photo-wrap hidden">
+                                <img id="photoPreview" class="photo-preview" alt="Shelf photo preview">
+                                <button class="photo-remove" onclick="clearPhoto()" title="Remove photo">✕</button>
+                            </div>
                             <div id="auditResult" class="audit-result hidden"></div>
                         </div>
 
@@ -182,7 +202,7 @@
                     <section class="card invoice-list-card">
                         <h3 class="side-title">Recent invoices</h3>
                         <div id="invoiceList" class="invoice-list"></div>
-                        <p id="invoiceEmpty" class="muted small">No invoices yet — process a voice note on the Dashboard.</p>
+                        <p id="invoiceEmpty" class="muted small">No invoices yet. Process a voice note on the Dashboard.</p>
                     </section>
 
                     <section id="invoicePaper" class="card invoice-paper hidden">
