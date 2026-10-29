@@ -115,6 +115,29 @@ function updateFileName() {
     const hasFile = input.files.length > 0;
     label.textContent = hasFile ? input.files[0].name : "No file selected";
     document.getElementById('fileRemove').classList.toggle('hidden', !hasFile);
+    if (hasFile) showAudioPreview(input.files[0]); else hideAudioPreview();
+}
+
+/* ---------------- Audio preview ---------------- */
+let audioPreviewUrl = null;
+
+function showAudioPreview(blob) {
+    const player = document.getElementById('audioPreview');
+    if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+    audioPreviewUrl = URL.createObjectURL(blob);
+    player.src = audioPreviewUrl;
+    player.classList.remove('hidden');
+}
+
+function hideAudioPreview() {
+    const player = document.getElementById('audioPreview');
+    player.pause();
+    player.removeAttribute('src');
+    player.classList.add('hidden');
+    if (audioPreviewUrl) {
+        URL.revokeObjectURL(audioPreviewUrl);
+        audioPreviewUrl = null;
+    }
 }
 
 function openAudioPicker() {

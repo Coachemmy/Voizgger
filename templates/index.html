@@ -76,6 +76,7 @@
                             <button id="fileName" type="button" class="file-pill" onclick="openAudioPicker()" title="Click to browse audio files">No file selected</button>
                             <button id="fileRemove" type="button" class="pill-remove hidden" onclick="clearAudioFile(event)" title="Remove audio" aria-label="Remove selected audio file">✕</button>
                         </div>
+                        <audio id="audioPreview" class="audio-preview hidden" controls preload="metadata"></audio>
                         <div class="rec-row">
                             <button id="recordBtn" type="button" class="record-btn" onclick="toggleRecording(event)" aria-pressed="false">
                                 <span class="rec-dot" aria-hidden="true"></span><span id="recordBtnText">Record voice note</span>
