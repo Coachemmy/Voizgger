@@ -127,7 +127,13 @@ def process_voice_to_ledger(
                 transcript_text = turns[0].get("transcript", "")
 
         if not transcript_text:
-            return {"error": "Transcription was empty. Please check terminal for the raw response."}
+            return {
+                "error": (
+                    "We didn't catch any speech in that recording. "
+                    "Check that your microphone is working, then try again."
+                ),
+                "empty_audio": True,
+            }
 
         target_language = (language or "English").strip() or "English"
         audit_note = (
@@ -147,7 +153,9 @@ def process_voice_to_ledger(
         Every human-readable value MUST be written in {target_language}.
 
         Keys:
-        - "items": array of item names
+        - "items": array of item names. If the speaker states a packaging size or weight
+          ("twenty-five kilo rice", "50kg bag"), append it in parentheses: "Rice (25kg)".
+          Never invent a size the speaker did not say.
         - "quantity": array of quantities as numbers (same order as items)
         - "amount_paid": number only, no currency symbols
         - "amount_owed": number only, 0 if none
@@ -159,7 +167,7 @@ def process_voice_to_ledger(
 
         Example output:
         {{
-            "items": ["Rice", "Beans"],
+            "items": ["Rice (25kg)", "Beans"],
             "quantity": [5, 2],
             "amount_paid": 50000,
             "amount_owed": 10000,
@@ -243,10 +251,156 @@ def translate_ledger(
     }
 
 
+def base_item_name(name: str) -> str:
+    """'Rice (50kg)' -> 'rice' — match on the product, not the packaging spec."""
+    return re.sub(r"\s*\(.*?\)", "", str(name)).strip().lower()
+
+
+_SPEC_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(kgs|kg|g|ml|cl|l)\b", re.IGNORECASE)
+
+
+def parse_packaging_spec(text: str) -> str:
+    """'25 Kgs Net' / '50 kg' / '500ml' -> '25kg' / '50kg' / '500ml'. Blank when unreadable."""
+    match = _SPEC_RE.search(str(text or ""))
+    if not match:
+        return ""
+    unit = match.group(2).lower().rstrip("s")
+    return f"{match.group(1)}{unit}"
+
+
+def spec_from_item_name(name: str) -> str:
+    """Pull the size out of 'Rice (50kg)' so it can be compared with the photo."""
+    match = re.search(r"\(([^)]*)\)", str(name))
+    return parse_packaging_spec(match.group(1)) if match else ""
+
+
+def photo_label(name: str, spec: str) -> str:
+    """Describe what the photo shows: product name + the size actually printed on it.
+
+    The model can echo the requested name (including the recorded size) back at us, so the
+    label is rebuilt from the plain product name and the spec it read from the image.
+    """
+    base = re.sub(r"\s*\(.*?\)", "", str(name or "")).strip()
+    size = parse_packaging_spec(spec)
+    return f"{base} ({size})" if size else base
+
+
+def compare_stock(detected: list, items: list, quantities: list) -> dict:
+    """Match model-detected stock against the spoken ledger. Pure — no network."""
+    counts: dict = {}
+    specs: dict = {}
+    for row in detected:
+        name = str(row.get("item", "")).strip().lower()
+        if not name:
+            continue
+        counts[name] = counts.get(name, 0) + int(row.get("count", 0) or 0)
+        spec = parse_packaging_spec(row.get("spec", "")) or spec_from_item_name(name)
+        if spec:
+            specs.setdefault(name, set()).add(spec)
+
+    def related(name: str, item: str) -> bool:
+        if name == item.lower():
+            return True
+        base = base_item_name(item)
+        if not base:
+            return False
+        other = base_item_name(name)
+        return base in other or other in base
+
+    def detected_count(item: str) -> int:
+        return sum(n for name, n in counts.items() if related(name, item))
+
+    def detected_specs(item: str) -> set:
+        found = set()
+        for name, spec_set in specs.items():
+            if related(name, item):
+                found |= spec_set
+        return found
+
+    spoken = {
+        str(item).strip(): int(quantities[i] or 0) if i < len(quantities) else 0
+        for i, item in enumerate(items)
+    }
+
+    checks = []
+    short = []
+    packaging = []
+    for item, qty in spoken.items():
+        seen = detected_count(item)
+        recorded_spec = spec_from_item_name(item)
+        seen_specs = detected_specs(item)
+
+        if seen < qty:
+            status = "short"
+            short.append(item)
+        elif recorded_spec and seen_specs and recorded_spec not in seen_specs:
+            status = "packaging"
+            packaging.append(item)
+        else:
+            status = "match"
+
+        checks.append(
+            {
+                "item": item,
+                "recorded": qty,
+                "detected": seen,
+                "recorded_spec": recorded_spec,
+                "seen_spec": ", ".join(sorted(seen_specs)),
+                "status": status,
+            }
+        )
+
+    shown = ", ".join(
+        f"{row.get('count')} × {photo_label(row.get('item', ''), row.get('spec', ''))}"
+        for row in detected
+    ) or "nothing recognisable"
+    recorded = ", ".join(f"{qty} × {item}" for item, qty in spoken.items())
+
+    # Items whose size was never spoken: the photo may show one, but there is nothing to
+    # compare it against, so say so instead of implying the size was verified.
+    unverified_specs = [
+        item for item in spoken if not spec_from_item_name(item) and detected_specs(item)
+    ]
+
+    if not detected:
+        verdict = "unknown"
+        message = "No goods could be recognised in this photo. Try a clearer, straight-on shot."
+    elif short:
+        verdict = "review"
+        message = (
+            f"Photo shows {shown}. The recorded sale was {recorded} — "
+            f"{', '.join(short)} look short, so double-check the ledger."
+        )
+    elif packaging:
+        verdict = "review"
+        message = (
+            f"Photo shows {shown}. The count matches, but the packaging size does not — "
+            f"{', '.join(packaging)} was recorded at a different size than what is on the shelf. "
+            "Recheck the sale before it becomes an invoice."
+        )
+    else:
+        verdict = "consistent"
+        message = f"Photo shows {shown}. That matches the quantities you recorded ({recorded})."
+        if unverified_specs:
+            message += (
+                f" The packaging size for {', '.join(unverified_specs)} was not stated in the "
+                "recording, so it could not be verified."
+            )
+
+    return {
+        "verdict": verdict,
+        "message": message,
+        "short": short,
+        "packaging": packaging,
+        "spoken": spoken,
+        "checks": checks,
+    }
+
+
 def verify_inventory(image_bytes: bytes, mime_type: str, items: list, quantities: list) -> dict:
     """
-    Visual verification: muse-wonder counts the stock visible in a shelf photo so the
-    recorded quantities can be sanity-checked.
+    Visual verification: muse-wonder counts the stock visible in a photo so the
+    recorded quantities (and packaging sizes) can be sanity-checked.
     """
     if not items:
         return {"error": "Process a transaction before running a visual audit."}
@@ -256,13 +410,17 @@ def verify_inventory(image_bytes: bytes, mime_type: str, items: list, quantities
 
     prompt = (
         "You are a stock verification assistant for a market trader. "
-        "Look at the photo of their shelf. For each item below, count how many units are visible: "
+        "Look at the photo of their stock — it may be a shop shelf, a store room, or a delivery load. "
+        "For each item below, count how many units are visible: "
         f"{json.dumps(items, ensure_ascii=False)}. "
         "Item names may include a packaging spec in parentheses like 'Rice (50kg)' — match by the "
-        "product itself: any bag/sack of rice counts as 'Rice (50kg)', regardless of the weight or "
-        "brand printed on the packaging. "
-        'Reply ONLY with JSON: {"detected":[{"item":"<name exactly as given in my list>","count":<int>}],'
-        '"confidence":<0-100>}. If an item is not visible at all, use count 0.'
+        "product itself: any bag/sack of rice counts as 'Rice (50kg)', regardless of the brand. "
+        "Also read the size printed on the packaging (e.g. '25 Kgs Net' -> '25kg') so a size "
+        "mismatch can be caught. "
+        'Reply ONLY with JSON: {"detected":[{"item":"<plain product name, no parentheses or sizes>","count":<int>,'
+        '"spec":"<size printed on the packaging, e.g. 25kg, or empty string if none is legible>"}],'
+        '"confidence":<0-100>}. The "spec" must be read from the photo itself — never copy the '
+        "size from my list above into it. If an item is not visible at all, use count 0."
     )
 
     body = {
@@ -308,52 +466,12 @@ def verify_inventory(image_bytes: bytes, mime_type: str, items: list, quantities
         return {"error": f"Visual audit failed: {str(e)}"}
 
     # Compare detected stock against what the trader said they sold
-    spoken = {
-        str(item).strip(): quantities[i] if i < len(quantities) else 0
-        for i, item in enumerate(items)
-    }
-    counts = {}
-    for row in detected:
-        name = str(row.get("item", "")).strip().lower()
-        if name:
-            counts[name] = counts.get(name, 0) + int(row.get("count", 0) or 0)
-
-    def _base(name: str) -> str:
-        # "Rice (50kg)" -> "rice" — match on the product, not the packaging spec
-        return re.sub(r"\s*\(.*?\)", "", name).strip().lower()
-
-    def detected_count(item: str) -> int:
-        base = _base(item)
-        total = counts.get(item.lower(), 0)
-        for name, n in counts.items():
-            if name != item.lower() and base and (base in _base(name) or _base(name) in base):
-                total += n
-        return total
-
-    short = []
-    for item, qty in spoken.items():
-        if detected_count(item) < int(qty or 0):
-            short.append(item)
-
-    shown = ", ".join(f"{row.get('count')} × {row.get('item')}" for row in detected) or "nothing recognisable"
-    recorded = ", ".join(f"{int(qty or 0)} × {item}" for item, qty in spoken.items())
-
-    if not detected:
-        verdict = "unknown"
-        message = "No stock could be recognised in this photo. Try a clearer, straight-on shot."
-    elif short:
-        verdict = "review"
-        message = (
-            f"Photo shows {shown}. The recorded sale was {recorded} — "
-            f"{', '.join(short)} look short, so double-check the ledger."
-        )
-    else:
-        verdict = "consistent"
-        message = f"Photo shows {shown}. That matches the quantities you recorded ({recorded})."
+    result = compare_stock(detected, items, quantities)
 
     return {
         "detected": detected,
-        "verdict": verdict,
-        "message": message,
+        "verdict": result["verdict"],
+        "message": result["message"],
+        "checks": result["checks"],
         "confidence": data.get("confidence"),
     }

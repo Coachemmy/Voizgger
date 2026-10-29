@@ -5,6 +5,9 @@ const state = {
     photo: null,
 };
 
+let invoiceCache = [];
+let currentInvoice = null;
+
 function switchView(name, event) {
     if (event) event.preventDefault();
     document.querySelectorAll('.nav-item').forEach((el) => {
@@ -76,6 +79,7 @@ function syncThemeIcon() {
     if (btn) {
         btn.textContent = isDark ? '☀️' : '🌙';
         btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        btn.setAttribute('aria-label', btn.title);
     }
 }
 
@@ -95,6 +99,8 @@ const initialView = (location.hash || '').replace('#', '');
 if (['dashboard', 'invoices', 'customers'].includes(initialView)) {
     switchView(initialView);
 }
+
+loadInvoices();
 
 // Splash screen: hold for 4s, then fade out
 setTimeout(() => {
@@ -184,6 +190,7 @@ function setRecUI(recording) {
     const text = document.getElementById('recordBtnText');
     const timer = document.getElementById('recTimer');
     btn.classList.toggle('recording', recording);
+    btn.setAttribute('aria-pressed', recording ? 'true' : 'false');
     text.textContent = recording ? 'Stop recording' : 'Record voice note';
     timer.classList.toggle('hidden', !recording);
     if (!recording) timer.textContent = '0:00';
@@ -211,7 +218,9 @@ function englishView() {
 
 function setActiveChip(language) {
     document.querySelectorAll('#langChips .chip').forEach((chip) => {
-        chip.classList.toggle('active', chip.dataset.lang === language);
+        const active = chip.dataset.lang === language;
+        chip.classList.toggle('active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
 }
 
@@ -314,17 +323,18 @@ function displayData(data) {
 }
 
 /* ---------------- Invoices ---------------- */
-function invoiceStore() {
+async function loadInvoices() {
     try {
-        return JSON.parse(localStorage.getItem('voizgger_invoices') || '[]');
+        const res = await fetch('/api/invoices');
+        invoiceCache = await res.json();
     } catch {
-        return [];
+        invoiceCache = [];
     }
+    renderInvoiceList();
 }
 
-function saveInvoice(data) {
+async function saveInvoice(data) {
     if (!data || data.error) return;
-    const invoices = invoiceStore();
     const entry = {
         id: `VG-${String(Date.now()).slice(-6)}`,
         date: new Date().toLocaleString(),
@@ -334,15 +344,27 @@ function saveInvoice(data) {
         amount_paid: data.amount_paid || 0,
         amount_owed: data.amount_owed || 0,
     };
-    invoices.unshift(entry);
-    localStorage.setItem('voizgger_invoices', JSON.stringify(invoices.slice(0, 25)));
+    try {
+        const res = await fetch('/api/invoices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry),
+        });
+        invoiceCache = await res.json();
+        renderInvoiceList();
+    } catch {
+        /* invoice stays visible in the ledger even if saving fails */
+    }
 }
 
-function clearInvoices() {
-    localStorage.removeItem('voizgger_invoices');
+async function clearInvoices() {
     currentInvoice = null;
     document.getElementById('invoicePaper').classList.add('hidden');
     document.getElementById('invoicePlaceholder').classList.remove('hidden');
+    try {
+        await fetch('/api/invoices', { method: 'DELETE' });
+    } catch { /* ignore */ }
+    invoiceCache = [];
     renderInvoiceList();
 }
 
@@ -353,7 +375,7 @@ function invoiceTotal(inv) {
 function renderInvoiceList() {
     const list = document.getElementById('invoiceList');
     const empty = document.getElementById('invoiceEmpty');
-    const invoices = invoiceStore();
+    const invoices = invoiceCache;
 
     list.innerHTML = '';
     empty.classList.toggle('hidden', invoices.length > 0);
@@ -370,10 +392,8 @@ function renderInvoiceList() {
     });
 }
 
-let currentInvoice = null;
-
 function showInvoice(id) {
-    const inv = invoiceStore().find((i) => i.id === id);
+    const inv = invoiceCache.find((i) => i.id === id);
     if (!inv) return;
     currentInvoice = inv;
 
@@ -536,7 +556,7 @@ function clearPhoto() {
 async function auditStock() {
     if (!state.base) return;
     if (!state.photo) {
-        alert("Choose a shelf photo first.");
+        alert("Choose a photo of the goods first.");
         return;
     }
 
@@ -545,7 +565,7 @@ async function auditStock() {
     btn.disabled = true;
     btn.textContent = "Auditing...";
     resultBox.className = "audit-result";
-    resultBox.textContent = "Reading the shelf...";
+    resultBox.textContent = "Reading your photo...";
     resultBox.classList.remove('hidden');
 
     const formData = new FormData();
@@ -565,24 +585,92 @@ async function auditStock() {
 
         const tone = { consistent: 'good', review: 'bad', unknown: 'warn' }[data.verdict] || 'warn';
         resultBox.className = `audit-result ${tone}`;
-        resultBox.textContent = data.message;
-
-        if (Array.isArray(data.detected) && data.detected.length) {
-            const list = document.createElement('ul');
-            list.className = 'audit-list';
-            data.detected.forEach((row) => {
-                const li = document.createElement('li');
-                li.textContent = `${row.count} × ${row.item}`;
-                list.appendChild(li);
-            });
-            resultBox.appendChild(list);
-        }
+        renderAudit(data, resultBox);
     } catch (error) {
         resultBox.className = "audit-result bad";
         resultBox.textContent = "Audit failed: " + error.message;
     } finally {
         btn.disabled = false;
         btn.textContent = "Audit stock";
+    }
+}
+
+function auditBadge(verdict) {
+    return {
+        consistent: { text: "Verified against photo", cls: "good" },
+        review: { text: "Needs a second look", cls: "bad" },
+    }[verdict] || { text: "Couldn't read the photo", cls: "warn" };
+}
+
+function auditMark(check) {
+    if (check.status === "match") return "✓";
+    if (check.status === "short") return `−${check.recorded - check.detected}`;
+    return `${check.recorded_spec || "?"} → ${check.seen_spec || "?"}`;
+}
+
+function renderAudit(data, resultBox) {
+    resultBox.innerHTML = "";
+
+    const badge = auditBadge(data.verdict);
+    const head = document.createElement('div');
+    head.className = 'audit-head';
+
+    const tag = document.createElement('span');
+    tag.className = 'audit-badge';
+    tag.textContent = badge.text;
+    head.appendChild(tag);
+
+    if (data.confidence !== null && data.confidence !== undefined) {
+        const conf = document.createElement('span');
+        conf.className = 'audit-conf';
+        conf.textContent = `${data.confidence}% confidence`;
+        head.appendChild(conf);
+    }
+    resultBox.appendChild(head);
+
+    if (data.message) {
+        const msg = document.createElement('p');
+        msg.className = 'audit-msg';
+        msg.textContent = data.message;
+        resultBox.appendChild(msg);
+    }
+
+    if (Array.isArray(data.checks) && data.checks.length) {
+        const rows = document.createElement('div');
+        rows.className = 'audit-rows';
+
+        data.checks.forEach((check) => {
+            const row = document.createElement('div');
+            row.className = `audit-row ${check.status === 'match' ? 'ok' : 'warn'}`;
+
+            const name = document.createElement('span');
+            name.className = 'ar-item';
+            name.textContent = check.item;
+
+            const nums = document.createElement('span');
+            nums.className = 'ar-nums';
+            nums.textContent = `${check.recorded} recorded · ${check.detected} in photo`;
+
+            const mark = document.createElement('span');
+            mark.className = 'ar-mark';
+            mark.textContent = auditMark(check);
+
+            row.appendChild(name);
+            row.appendChild(nums);
+            row.appendChild(mark);
+            rows.appendChild(row);
+        });
+        resultBox.appendChild(rows);
+    } else if (Array.isArray(data.detected) && data.detected.length) {
+        // Fallback for older responses that carry no per-item checks.
+        const list = document.createElement('ul');
+        list.className = 'audit-list';
+        data.detected.forEach((row) => {
+            const li = document.createElement('li');
+            li.textContent = `${row.count} × ${row.item}`;
+            list.appendChild(li);
+        });
+        resultBox.appendChild(list);
     }
 }
 

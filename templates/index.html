@@ -73,12 +73,12 @@
                         <p class="upload-title">Drop a voice note, click to browse or speak below</p>
                         <p class="upload-hint">m4a, mp3, wav · English, Pidgin, Yoruba…</p>
                         <div class="file-pill-row">
-                            <span id="fileName" class="file-pill" onclick="openAudioPicker()" title="Click to browse audio files">No file selected</span>
-                            <button id="fileRemove" class="pill-remove hidden" onclick="clearAudioFile(event)" title="Remove audio">✕</button>
+                            <button id="fileName" type="button" class="file-pill" onclick="openAudioPicker()" title="Click to browse audio files">No file selected</button>
+                            <button id="fileRemove" type="button" class="pill-remove hidden" onclick="clearAudioFile(event)" title="Remove audio" aria-label="Remove selected audio file">✕</button>
                         </div>
                         <div class="rec-row">
-                            <button id="recordBtn" class="record-btn" onclick="toggleRecording(event)">
-                                <span class="rec-dot"></span><span id="recordBtnText">Record voice note</span>
+                            <button id="recordBtn" type="button" class="record-btn" onclick="toggleRecording(event)" aria-pressed="false">
+                                <span class="rec-dot" aria-hidden="true"></span><span id="recordBtnText">Record voice note</span>
                             </button>
                             <span id="recTimer" class="rec-timer hidden">0:00</span>
                         </div>
@@ -94,7 +94,7 @@
                     </label>
 
                     <button id="submitBtn" class="btn-primary" onclick="processAudio()">Process Transaction</button>
-                    <div id="errorBox" class="alert hidden"></div>
+                    <div id="errorBox" class="alert hidden" role="alert" aria-live="polite"></div>
                 </section>
 
                 <!-- Output -->
@@ -117,12 +117,12 @@
                         <div class="block">
                             <div class="block-head">
                                 <span class="block-title">AI Transcript</span>
-                                <div id="langChips" class="lang-chips">
-                                    <button class="chip active" data-lang="English" onclick="switchLanguage('English')">English</button>
-                                    <button class="chip" data-lang="Nigerian Pidgin" onclick="switchLanguage('Nigerian Pidgin')">Pidgin</button>
-                                    <button class="chip" data-lang="Yoruba" onclick="switchLanguage('Yoruba')">Yorùbá</button>
-                                    <button class="chip" data-lang="Hausa" onclick="switchLanguage('Hausa')">Hausa</button>
-                                    <button class="chip" data-lang="Igbo" onclick="switchLanguage('Igbo')">Igbo</button>
+                                <div id="langChips" class="lang-chips" role="group" aria-label="Transcript language">
+                                    <button type="button" class="chip active" data-lang="English" aria-pressed="true" onclick="switchLanguage('English')">English</button>
+                                    <button type="button" class="chip" data-lang="Nigerian Pidgin" aria-pressed="false" onclick="switchLanguage('Nigerian Pidgin')">Pidgin</button>
+                                    <button type="button" class="chip" data-lang="Yoruba" aria-pressed="false" onclick="switchLanguage('Yoruba')">Yorùbá</button>
+                                    <button type="button" class="chip" data-lang="Hausa" aria-pressed="false" onclick="switchLanguage('Hausa')">Hausa</button>
+                                    <button type="button" class="chip" data-lang="Igbo" aria-pressed="false" onclick="switchLanguage('Igbo')">Igbo</button>
                                 </div>
                             </div>
                             <p id="transcriptText" class="transcript-text"></p>
@@ -152,7 +152,7 @@
                                 <span class="block-title">Visual Verification</span>
                                 <span class="pill-soft">muse-wonder</span>
                             </div>
-                            <p class="audit-hint">Snap your shelf so the AI can cross-check the quantities you recorded.</p>
+                            <p class="audit-hint">Snap the goods. Be it a shelf, a store room, or a delivery load. The AI counts what it sees and checks it against your ledger.</p>
 
                             <div class="audit-actions">
                                 <label class="btn-ghost audit-pick">
@@ -163,7 +163,7 @@
                             </div>
 
                             <div id="photoWrap" class="photo-wrap hidden">
-                                <img id="photoPreview" class="photo-preview" alt="Shelf photo preview">
+                                <img id="photoPreview" class="photo-preview" alt="Stock photo preview">
                                 <button class="photo-remove" onclick="clearPhoto()" title="Remove photo">✕</button>
                             </div>
                             <div id="auditResult" class="audit-result hidden"></div>

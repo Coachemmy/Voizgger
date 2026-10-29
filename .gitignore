@@ -13,6 +13,9 @@ __pycache__/
 # Environment variable
 .env
 
+# Local database
+*.db
+
 # IDE / editor artifacts
 .trae-html-share-packages/
 .vscode/

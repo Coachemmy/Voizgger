@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+*.db
+.env
+.git/
+.trae-html-share-packages/
+tests/
+requirements-dev.txt

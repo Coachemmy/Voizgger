@@ -179,6 +179,14 @@ body.dark {
   50% { box-shadow: 0 24px 60px -8px rgba(99, 102, 241, 1); }
 }
 
+/* ---------- Keyboard focus ---------- */
+button:focus-visible,
+a:focus-visible,
+.file-pill:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+
 /* ---------- Shell ---------- */
 .app-shell {
   display: flex;
@@ -334,6 +342,28 @@ body.dark {
   align-items: start;
 }
 
+/* Dashboard: the right column grows and scrolls inside itself,
+   so the page (and the input card on the left) never moves. */
+#view-dashboard {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#view-dashboard .workspace {
+  flex: 1;
+  min-height: 420px;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+#view-dashboard .output-card {
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -391,6 +421,7 @@ body.dark {
   display: inline-block;
   padding: 22px 26px;
   border-radius: 14px;
+  font-family: inherit;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--brand);
@@ -1082,6 +1113,83 @@ body.dark .file-pill {
   border-color: var(--red-line);
 }
 
+.audit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.audit-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.audit-conf {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.audit-msg {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.audit-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: 9px;
+}
+
+.audit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 0.78rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.audit-row:first-child {
+  border-top: 0;
+}
+
+.ar-item {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ar-nums {
+  color: inherit;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ar-mark {
+  min-width: 40px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-row.warn .ar-mark {
+  color: var(--red);
+}
+
+body.dark-mode .audit-row {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
 .audit-list {
   display: flex;
   flex-wrap: wrap;
@@ -1535,6 +1643,22 @@ body.dark ::-webkit-scrollbar-thumb {
 
   .output-card {
     min-height: 0;
+  }
+
+  /* Stacked layout: let the page scroll normally instead of trapping scroll. */
+  #view-dashboard {
+    height: auto;
+  }
+
+  #view-dashboard .workspace {
+    flex: none;
+    min-height: 0;
+  }
+
+  #view-dashboard .output-card {
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 

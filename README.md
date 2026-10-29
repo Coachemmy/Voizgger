@@ -81,18 +81,46 @@ Voizgger is not a demo wrapper around an LLM. It is a **multimodal, agentic pipe
 - **Visual Audit** — Meta Muse Wonder (stock counting & shelf verification)
 - **Backend** — FastAPI (Python 3.10+), ffmpeg audio pipeline
 - **Frontend** — Vanilla HTML/CSS/JS (no build step, runs anywhere)
-- **Persistence** — `localStorage` for invoices & preferences (hackathon scope; V2 → database + auth)
+- **Persistence** — SQLite for invoices (server-side, survives browser switches and cache clears); theme preference in `localStorage`
 
 ## 📸 Screenshots
 
 ### 1. Live AI Extraction & Agentic Follow-up
-![Voizgger Dashboard](YOUR_IMAGE_URL_HERE)
+Spoken in Nigerian Pidgin, transcribed and structured in one pass — items, amounts, a confidence score, and a ready-to-send WhatsApp reminder in the customer's language.
+
+![Voizgger dashboard after processing a Pidgin voice note](docs/screenshots/01-ledger.png)
 
 ### 2. Multimodal Visual Audit (Powered by Muse Wonder)
-![Visual Audit](YOUR_IMAGE_URL_HERE)
+
+The audit doesn't just count stock — it **cross-checks what was said against what's on the shelf**. Same voice note, two photos, two different verdicts:
+
+**2a. Discrepancy detected** — the sale was recorded as 25kg bags; the shelf holds 50kg bags. The count matches, the packaging size does not, so the audit flags it before the sale becomes an invoice.
+
+![Visual audit flagging a packaging-size mismatch](docs/screenshots/02a-audit-mismatch.png)
+
+**2b. Verified consistent** — same sale, against the shelf that actually matches the recording.
+
+![Visual audit verified as consistent](docs/screenshots/02b-audit-verified.png)
 
 ### 3. Automated Invoicing
-![Invoice Generation](YOUR_IMAGE_URL_HERE)
+Every processed sale becomes a printable invoice, saved server-side rather than in the browser.
+
+![Generated invoice](docs/screenshots/03-invoice.png)
+
+## Failure Handling
+
+Bad input never dead-ends the app and never produces an invented ledger entry. Every case below surfaces as an inline banner under **Process Transaction** (announced to screen readers via `role="alert"`):
+
+| Trigger | What the user sees |
+|---|---|
+| 0-byte file | *"That file is empty. Please try another recording."* |
+| Silent recording (bytes, no speech) | *"We didn't catch any speech in that recording. Check that your microphone is working, then try again."* |
+| Unsupported format | *"Unsupported audio format. Please upload MP3, WAV, M4A, WEBM or OGG."* |
+| Over 25 MB | *"File is too large. Please keep recordings under 25 MB."* |
+| Photo with nothing recognisable | *"No goods could be recognised in this photo. Try a clearer, straight-on shot."* |
+| Daily demo budget spent | *"Daily demo quota reached. Watch the demo video to see the full flow."* |
+
+A silent recording returns *"we didn't catch any speech"* rather than a guess. Refusing to invent a transaction is the point of the trust model, not an edge case.
 
 ## Getting Started
 
@@ -107,8 +135,8 @@ Voizgger is not a demo wrapper around an LLM. It is a **multimodal, agentic pipe
 ### Setup
 
 ```bash
-git clone https://github.com/yourusername/voizgger.git
-cd voizgger
+git clone https://github.com/Coachemmy/Voizgger.git
+cd Voizgger
 
 python -m venv .venv
 # Windows PowerShell:
@@ -142,14 +170,56 @@ Record a short voice note describing a sale (e.g. *"I sold 3 bags of rice for 20
 ```
 app/
 ├── main.py              # FastAPI entry
-├── api/endpoints.py     # /analyze_voice · /translate · /verify_stock
+├── api/endpoints.py     # /analyze_voice · /translate · /verify_stock · /invoices
 ├── core/config.py       # model & client config
+├── core/db.py           # SQLite invoice persistence
 └── services/meta_ai.py  # ASR → reasoning → translation → vision audit
 templates/index.html     # single-page UI (Dashboard · Invoices · Customers)
 static/
 ├── css/style.css        # design system, dark mode, print styles
 └── js/app.js            # view routing, language switching, invoice store
 ```
+
+### Run the tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+39 tests cover the stock-matching logic (including the `"Rice (50kg)"` vs `"Rice"` normalization), upload validation, JSON extraction, the invoice API, the daily quota and per-IP guards, and the `/health` probe.
+
+## Deployment
+
+The repo ships with a `Dockerfile` that installs **ffmpeg**, which the ASR pipeline needs.
+
+```bash
+docker build -t voizgger .
+docker run -p 8000:8000 -e MODEL_API_KEY=your_key voizgger
+```
+
+On any container host (Render, Railway, Fly.io, Cloud Run):
+
+1. Point it at this repo — it builds the `Dockerfile` automatically
+2. Set the `MODEL_API_KEY` environment variable
+3. Set `VOIZGGER_DB` to a path on persistent storage if you want invoices to survive redeploys
+4. Point an uptime monitor (UptimeRobot, free tier) at `/health` — a cheap probe that touches neither the database nor the model, which keeps free-tier containers from cold-starting in front of a judge
+
+### Cost guards
+
+Because the API key lives server-side, it is never exposed to visitors — but a public URL still lets anyone spend your credits. Two guards bound that by default:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DEMO_DAILY_LIMIT` | `50` | AI calls per day across all visitors, then a polite 429 |
+| `DEMO_IP_LIMIT` / `DEMO_IP_WINDOW` | `5` per `60`s | Stops one client flooding the endpoint |
+| `DEMO_LIMITS_ENABLED` | `1` | Set to `0` for local development |
+
+Rejected uploads (bad format, empty, oversized) never consume the daily budget — validation runs before the model does. Usage is counted in SQLite, so a restart does not reset the day's tally.
+
+> The per-IP window is kept in memory, which is correct for a single-process deployment (Render, Fly, a single container). Running multiple workers would make each process count separately.
+
+> **Note on persistence:** invoices are stored in SQLite. On hosts with an ephemeral filesystem (free tiers), the database resets when the container restarts. Mount a persistent disk and set `VOIZGGER_DB` to a path on it, or move to a managed Postgres for production.
 
 ## Roadmap
 
