@@ -62,13 +62,24 @@ body {
   font-size: 15px;
   color: var(--ink);
   min-height: 100vh;
-  overflow: hidden;
+  /* mobile-friendly: allow natural page scrolling by default;
+     desktop scroll trap is set via @media (min-width: 1041px) below */
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background:
     radial-gradient(900px 520px at 4% -12%, #e0e7ff 0%, transparent 58%),
     radial-gradient(760px 460px at 102% -6%, #dbeafe 0%, transparent 55%),
     var(--bg);
   -webkit-font-smoothing: antialiased;
   transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* Desktop-only: trap scrolling inside .main so body never moves */
+@media (min-width: 1041px) {
+  body {
+    overflow: hidden;
+  }
 }
 
 body.dark {
@@ -84,6 +95,10 @@ body.dark {
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  /* Use visual viewport on mobile so address bar shifts don't move the canvas */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* ---------- Splash ---------- */
@@ -191,6 +206,7 @@ a:focus-visible,
 .app-shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;  /* dynamic viewport: accounts for mobile address bar */
 }
 
 /* ---------- Sidebar ---------- */
@@ -1660,16 +1676,25 @@ body.dark ::-webkit-scrollbar-thumb {
     max-height: none;
     overflow-y: visible;
   }
+
+  /* Let .main scroll naturally instead of trapping scroll inside it */
+  .main {
+    overflow-y: visible;
+  }
 }
 
 @media (max-width: 760px) {
-  body {
-    overflow: auto;
-  }
+  /* body overflow-y: auto is now the base default; no override needed here */
 
   .app-shell {
     flex-direction: column;
     height: auto;
+  }
+
+  /* Ensure .main never traps scroll on mobile */
+  .main {
+    overflow-y: visible;
+    overflow-x: visible;
   }
 
   .sidebar {
