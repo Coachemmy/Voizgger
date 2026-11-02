@@ -1723,7 +1723,7 @@ body.dark ::-webkit-scrollbar-thumb {
     overflow-y: visible;
   }
 
-  /* Let .main scroll naturally instead of trapping scroll inside it */
+  /* Let .main scroll naturally */
   .main {
     overflow-y: visible;
   }
