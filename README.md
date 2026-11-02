@@ -35,12 +35,12 @@ Traders already narrate every transaction out loud - to customers, apprentices, 
 
 | Capability | How it works |
 |---|---|
-| 🎙️ **Voice-to-Ledger** | Record in the browser or upload a voice note in English, **Pidgin, Yorùbá, Hausa, or Igbo** - replay it in-app before processing - then **Meta Muse Voice Transcribe** turns it into items, quantities, amounts paid, and debts owed |
-| 🌍 **Instant Translation** | The transcript, summary, and follow-up SMS switch between the 5 languages in one tap - the ledger stays accurate while communication stays local |
-| 🧠 **Deep Audit Mode** | A `reasoning_effort` toggle escalates Muse Spark to high-effort reasoning for complex debts (conditional payments, discounts, partial settlements) |
-| 🛡️ **Confidence Ledger** | Every extraction carries an AI confidence score; items below 80% are flagged amber - **the AI assists, the trader decides** |
-| 📷 **Visual Stock Audit** | Snap a photo of the shelf - the vision model counts remaining stock and cross-checks it against what the voice note claims was sold, catching errors and shrinkage |
-| 🧾 **Auto-Invoices** | Every voice note becomes a printable/downloadable invoice with one tap |
+| **Voice-to-Ledger** | Record in the browser or upload a voice note in English, **Pidgin, Yorùbá, Hausa, or Igbo** - replay it in-app before processing - then **Meta Muse Voice Transcribe** turns it into items, quantities, amounts paid, and debts owed |
+| **Instant Translation** | The transcript, summary, and follow-up SMS switch between the 5 languages in one tap - the ledger stays accurate while communication stays local |
+| **Deep Audit Mode** | A `reasoning_effort` toggle escalates Muse Spark to high-effort reasoning for complex debts (conditional payments, discounts, partial settlements) |
+| **Confidence Ledger** | Every extraction carries an AI confidence score; items below 80% are flagged amber - **the AI assists, the trader decides** |
+| **Visual Stock Audit** | Snap a photo of the shelf - the vision model counts remaining stock and cross-checks it against what the voice note claims was sold, catching errors and shrinkage |
+| **Auto-Invoices** | Every voice note becomes a printable/downloadable invoice with one tap |
 | 🌙 **Dark Mode** | Full light/dark themes, saved between visits |
 
 ## Design Decisions
