@@ -1655,6 +1655,47 @@ body.dark ::-webkit-scrollbar-thumb {
   }
 }
 
+/* ---------- Hamburger button (hidden on desktop, shown on mobile) ---------- */
+.hamburger-btn {
+  display: none;  /* hidden on desktop */
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 36px;
+  transition: background 0.2s;
+}
+
+.hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #dbe3f4;
+  border-radius: 2px;
+  transition: transform 0.25s, opacity 0.15s;
+}
+
+/* hamburger → X animation when open */
+.hamburger-btn[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.hamburger-btn[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-btn[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1040px) {
   .workspace,
@@ -1702,8 +1743,6 @@ body.dark ::-webkit-scrollbar-thumb {
 }
 
 @media (max-width: 760px) {
-  /* body overflow-y: auto is now the base default; no override needed here */
-
   .app-shell {
     flex-direction: column;
     height: auto;
@@ -1717,51 +1756,78 @@ body.dark ::-webkit-scrollbar-thumb {
 
   .sidebar {
     width: 100%;
-    padding: 12px 16px;
+    padding: 10px 14px;
     flex-direction: row;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
   }
 
   .brand {
     padding: 0;
-    flex: 0 0 auto;   /* don't try to grow — let nav-menu be king */
-    font-size: 0.9rem;
+    flex: 0 0 auto;
+    font-size: 0.85rem;
     gap: 8px;
+    cursor: pointer;
   }
 
-  /* Hide "Voice-to-Ledger" subtitle on mobile to save width */
   .brand-text span {
-    display: none;
+    display: none;   /* hide "Voice-to-Ledger" subtitle */
   }
 
   .brand-logo,
   .brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
   }
 
+  /* Show hamburger on mobile */
+  .hamburger-btn {
+    display: inline-flex;
+    margin-left: auto;   /* push to right edge */
+  }
+
+  /* Hide nav-menu by default on mobile — revealed via .open class */
   .nav-menu {
-    flex-direction: row;
-    flex: 1 1 auto;   /* let it fill remaining space */
-    justify-content: flex-end;
-    gap: 3px;
-    min-width: 0;
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: linear-gradient(165deg, var(--sidebar-a) 0%, var(--sidebar-b) 100%);
+    flex-direction: column;
+    padding: 12px;
+    gap: 2px;
+    box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.45);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Reveal nav when .open class is added */
+  .nav-menu.open {
+    display: flex;
   }
 
   .nav-item {
-    padding: 5px 8px;
-    font-size: 0.78rem;
-    border-radius: 8px;
-    white-space: nowrap;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    border-radius: 10px;
+    color: #c8d3ec;
+    gap: 10px;
+  }
+
+  .nav-item.active {
+    background: linear-gradient(120deg, rgba(99, 102, 241, 0.9), rgba(37, 99, 235, 0.75));
+    color: #fff;
   }
 
   .nav-item svg {
-    display: none;
+    display: block;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
   }
 
   .sidebar-footer {

@@ -18,7 +18,34 @@ function switchView(name, event) {
     if (target) target.classList.remove('hidden');
     if (name === 'invoices') renderInvoiceList();
     history.replaceState(null, '', `#${name}`);
+    // Close mobile nav drawer after clicking
+    closeMobileNav();
 }
+
+function toggleMobileNav() {
+    const menu = document.getElementById('navMenu');
+    const btn = document.getElementById('hamburgerBtn');
+    if (!menu || !btn) return;
+    const isOpen = menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function closeMobileNav() {
+    const menu = document.getElementById('navMenu');
+    const btn = document.getElementById('hamburgerBtn');
+    if (!menu || !btn) return;
+    menu.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+}
+
+// Close hamburger when clicking outside it
+document.addEventListener('click', function(e) {
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+    if (!sidebar.contains(e.target)) {
+        closeMobileNav();
+    }
+});
 
 (function initParticles() {
     const canvas = document.getElementById('bgCanvas');
