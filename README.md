@@ -160,7 +160,7 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```env
-MODEL_API_KEY=your_meta_api_key_here
+MODEL_API_KEY=meta_api_key_here
 ```
 
 Run:
