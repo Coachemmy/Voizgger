@@ -1674,24 +1674,36 @@ body.dark ::-webkit-scrollbar-thumb {
 
   .sidebar {
     width: 100%;
-    padding: 16px;
+    padding: 12px 16px;
     flex-direction: row;
     align-items: center;
     gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
 
   .brand {
     padding: 0;
     flex: 1;
+    font-size: 0.9rem;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 32px;
   }
 
   .nav-menu {
     flex-direction: row;
     flex: 0 0 auto;
+    gap: 4px;
   }
 
   .nav-item {
-    padding: 8px 10px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    border-radius: 8px;
   }
 
   .nav-item svg {
@@ -1703,13 +1715,68 @@ body.dark ::-webkit-scrollbar-thumb {
   }
 
   .main {
-    padding: 20px 16px 28px;
+    padding: 16px 12px 28px;
     overflow: visible;
   }
 
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+    padding: 8px 0 12px;
+  }
+
+  .topbar-title h2 {
+    font-size: 1.15rem;
+  }
+
+  .topbar-title p {
+    font-size: 0.8rem;
+  }
+
+  .workspace {
+    gap: 14px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .upload-title {
+    font-size: 0.9rem;
+  }
+
+  .upload-area {
+    padding: 20px 12px;
+  }
+
+  .file-pill {
+    font-size: 0.85rem;
+    padding: 8px 14px;
+  }
+
+  .record-btn {
+    padding: 14px 20px;
+    font-size: 0.95rem;
+  }
+
+  .btn-primary {
+    padding: 14px 20px;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+
+  /* Make the ledger tables fit mobile */
+  .totals-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Invoices grid */
+  .ledger-table th,
+  .ledger-table td {
+    padding: 8px 6px;
+    font-size: 0.82rem;
   }
 }
 
