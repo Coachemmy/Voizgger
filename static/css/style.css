@@ -1728,25 +1728,36 @@ body.dark ::-webkit-scrollbar-thumb {
 
   .brand {
     padding: 0;
-    flex: 1;
+    flex: 0 0 auto;   /* don't try to grow — let nav-menu be king */
     font-size: 0.9rem;
+    gap: 8px;
   }
 
-  .brand-logo {
+  /* Hide "Voice-to-Ledger" subtitle on mobile to save width */
+  .brand-text span {
+    display: none;
+  }
+
+  .brand-logo,
+  .brand-mark {
     width: 32px;
     height: 32px;
+    flex-shrink: 0;
   }
 
   .nav-menu {
     flex-direction: row;
-    flex: 0 0 auto;
-    gap: 4px;
+    flex: 1 1 auto;   /* let it fill remaining space */
+    justify-content: flex-end;
+    gap: 3px;
+    min-width: 0;
   }
 
   .nav-item {
-    padding: 6px 10px;
-    font-size: 0.82rem;
+    padding: 5px 8px;
+    font-size: 0.78rem;
     border-radius: 8px;
+    white-space: nowrap;
   }
 
   .nav-item svg {
