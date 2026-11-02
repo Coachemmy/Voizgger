@@ -7,6 +7,16 @@
 
 ---
 
+## 🔗 Quick Links
+
+| Resource | Link |
+|---|---|
+| 🖥️ **Live Demo** | [voizgger.onrender.com](https://voizgger.onrender.com/) |
+| 🎬 **3-Minute Demo Video** | [youtube.com/watch?v=7Vwd4XU6Qr0](https://www.youtube.com/watch?v=7Vwd4XU6Qr0) |
+| 📦 **Public GitHub Repo** | [github.com/Coachemmy/Voizgger](https://github.com/Coachemmy/Voizgger) |
+
+---
+
 ## The Problem
 
 Around **2 billion people** - roughly 60% of the world's workers - earn their living in the informal economy (ILO). In Nigeria, most market traders run the business on memory and a paper notebook:
