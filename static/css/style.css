@@ -57,6 +57,11 @@ body.dark {
   padding: 0;
 }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 15px;
@@ -1680,6 +1685,19 @@ body.dark ::-webkit-scrollbar-thumb {
   /* Let .main scroll naturally instead of trapping scroll inside it */
   .main {
     overflow-y: visible;
+  }
+
+  /* Tablet/mobile: stack sidebar on top, never show the 258px fixed sidebar */
+  .app-shell {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-shrink: 0;
+    flex-direction: row;
+    padding: 12px 16px;
   }
 }
 
